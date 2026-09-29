@@ -78,7 +78,7 @@ services:
       SERVERURL: ${WIREGUARD_ENDPOINT:-auto}
       SERVERPORT: "51820"
       PEERS: "1"
-      PEERDNS: auto
+      PEERDNS: 1.1.1.1
       INTERNAL_SUBNET: 10.13.13.0
       ALLOWEDIPS: 10.13.13.0/24
       LOG_CONFS: "false"

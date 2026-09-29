@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Idempotent local setup for the Arr services. Uses only Python's standard library."""
+import http.client
 import json
 import os
 import secrets
@@ -39,14 +40,26 @@ def call(name, route, method='GET', payload=None):
         return json.loads(body) if body else None
 
 
-def ready(name):
-    for _ in range(90):
+def wait_for(label, probe):
+    """Wait for services while their proxy and API are starting."""
+    deadline = time.monotonic() + 300
+    last_error = None
+    while time.monotonic() < deadline:
         try:
-            call(name, 'system/status')
-            return
-        except (urllib.error.URLError, TimeoutError, ValueError):
+            return probe()
+        except (urllib.error.URLError, http.client.RemoteDisconnected,
+                http.client.BadStatusLine, ConnectionResetError,
+                BrokenPipeError, TimeoutError, ValueError) as error:
+            if isinstance(error, urllib.error.HTTPError) and error.code not in (429, 502, 503, 504):
+                raise
+            last_error = error
             time.sleep(2)
-    raise RuntimeError(f'{name}: API non raggiungibile')
+    raise RuntimeError(f'{label}: API non raggiungibile dopo 5 minuti ({last_error})')
+
+
+def ready(name):
+    wait_for(name, lambda: call(name, 'system/status'))
+    print(f'{name}: API pronta', flush=True)
 
 
 def field(record, name, value):
@@ -137,14 +150,8 @@ def jelly_call(path, method='GET', payload=None, token=None):
 
 
 def setup_jellyfin():
-    for _ in range(90):
-        try:
-            info = jelly_call('System/Info/Public')
-            break
-        except urllib.error.URLError:
-            time.sleep(2)
-    else:
-        raise RuntimeError('Jellyfin: API non raggiungibile')
+    info = wait_for('Jellyfin', lambda: jelly_call('System/Info/Public'))
+    print('Jellyfin: API pronta', flush=True)
     secret_dir = Path('secrets')
     secret_dir.mkdir(mode=0o700, exist_ok=True)
     credential = secret_dir / 'jellyfin-admin.txt'

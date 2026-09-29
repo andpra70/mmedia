@@ -87,7 +87,21 @@ def ensure(name, route, implementation, display, values, extras=None):
 
 def root(name, path):
     if path not in [x['path'] for x in call(name, 'rootfolder')]:
-        call(name, 'rootfolder', 'POST', {'path': path})
+        payload = {'path': path}
+        if name == 'lidarr':
+            quality = call(name, 'qualityprofile')
+            metadata = call(name, 'metadataprofile')
+            if not quality or not metadata:
+                raise RuntimeError('Lidarr: profili qualità o metadati non disponibili')
+            payload.update({'name': 'Musica',
+                            'defaultQualityProfileId': quality[0]['id'],
+                            'defaultMetadataProfileId': metadata[0]['id'],
+                            'defaultTags': []})
+        try:
+            call(name, 'rootfolder', 'POST', payload)
+        except urllib.error.HTTPError as error:
+            detail = error.read().decode('utf-8', errors='replace')[:1200]
+            raise RuntimeError(f'{name}: impossibile creare {path} (HTTP {error.code}): {detail}') from error
     print(f'{name}: root {path}')
 
 
@@ -106,6 +120,9 @@ def setup_arr(name, path, category):
 def setup_prowlarr():
     existing = {x['name'] for x in call('prowlarr', 'indexer')}
     schema = call('prowlarr', 'indexer/schema')
+    profiles = call('prowlarr', 'appprofile')
+    if not profiles:
+        raise RuntimeError('Prowlarr: nessun profilo applicativo disponibile')
     for label, definition in [('The Pirate Bay', 'thepiratebay'),
                               ('YTS', 'yts'), ('TorrentDownload', 'torrentdownload'),
                               ('Nyaa.si', 'nyaasi')]:
@@ -119,6 +136,7 @@ def setup_prowlarr():
             continue
         template['name'] = label
         template['enable'] = True
+        template['appProfileId'] = profiles[0]['id']
         try:
             call('prowlarr', 'indexer', 'POST', template)
             print(f'Prowlarr: indexer {label} aggiunto')
@@ -139,9 +157,10 @@ def setup_prowlarr():
 
 def jelly_call(path, method='GET', payload=None, token=None):
     data = None if payload is None else json.dumps(payload).encode()
-    headers = {'Content-Type': 'application/json'}
+    authorization = 'MediaBrowser Client="mmedia-bootstrap", Device="host", DeviceId="mmedia-bootstrap", Version="1"'
     if token:
-        headers['Authorization'] = f'MediaBrowser Client="mmedia-bootstrap", Device="host", DeviceId="mmedia-bootstrap", Version="1", Token="{token}"'
+        authorization += f', Token="{token}"'
+    headers = {'Content-Type': 'application/json', 'Authorization': authorization}
     request = urllib.request.Request('http://127.0.0.1:8080/' + path,
                                      data=data, method=method, headers=headers)
     with urllib.request.urlopen(request, timeout=20) as response:

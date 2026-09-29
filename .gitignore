@@ -1,7 +1,5 @@
 .env
-config/
-cache/
-render-cache/
+jellyfin/
 media/
 downloads/
 logs/

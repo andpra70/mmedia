@@ -177,7 +177,7 @@ def setup_jellyfin():
         token_file.chmod(0o600)
     else:
         # Migration of an already installed stack; do not reset its administrator.
-        db = Path('config/data/jellyfin.db')
+        db = Path('jellyfin/config/data/jellyfin.db')
         if not db.exists():
             raise RuntimeError('Jellyfin già inizializzato: manca una chiave API in secrets/jellyfin-api-key')
         with sqlite3.connect(f'file:{db}?mode=ro', uri=True) as connection:

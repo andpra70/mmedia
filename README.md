@@ -13,7 +13,7 @@ Servono Docker Engine con `docker compose` e un utente autorizzato a usare Docke
 ./go.sh
 ```
 
-`install.sh` crea le directory e prepara le impostazioni iniziali di Transmission. `go.sh` avvia i container e apre le cinque interfacce nel browser. I dati di Jellyfin già presenti in `config/` sono mantenuti. Per arrestare: `docker compose down`. Per controllare: `docker compose ps` e `docker compose logs -f NOME_SERVIZIO`.
+`install.sh` crea le directory e prepara le impostazioni iniziali di Transmission. `go.sh` avvia i container e apre le cinque interfacce nel browser. I dati Jellyfin sono sotto `jellyfin/`; `install.sh` migra automaticamente le vecchie directory `config/`, `cache/` e `render-cache/` se presenti. Per arrestare: `docker compose down`. Per controllare: `docker compose ps` e `docker compose logs -f NOME_SERVIZIO`.
 
 ### Interfacce web
 
@@ -80,7 +80,7 @@ Lidarr gestisce soprattutto artisti e album; per un singolo brano è più pratic
 | `downloads/complete` | `/downloads/complete` | Torrent finiti; le categorie `radarr/` e `lidarr/` sono create da `install.sh` e condivise tra i tre container |
 | `media/movies` | `/media/movies` | Libreria film; Jellyfin la legge soltanto |
 | `media/music` | `/media/music` | Libreria musica; Jellyfin la legge soltanto |
-| `config`, `cache`, `render-cache` | Vari | Dati Jellyfin già esistenti |
+| `jellyfin/config`, `jellyfin/cache`, `jellyfin/render-cache` | `/config`, `/cache`, `/config/data/render-cache` | Dati Jellyfin persistenti |
 | `*/config` | `/config` | Stato dei nuovi servizi |
 
 Radarr e Lidarr copiano o collegano i file nella libreria. Non impostare la destinazione di Transmission direttamente in `media/movies` o `media/music`: i client torrent possono continuare a usare i file per il seeding e Jellyfin deve vedere solo la libreria importata. Se un servizio mostra *Permission denied*, verifica proprietà e permessi delle directory host con `ls -ln` e confrontali con UID/GID `1000:1000`.
@@ -112,7 +112,7 @@ Jellyfin ora è sulla rete Docker, anziché in `network_mode: host`: l'accesso w
 
 ## Installazione riproducibile da Git
 
-Su un host Linux con Docker Engine, plugin Compose, Python 3 e un utente con UID/GID `1000:1000` abilitato a usare Docker:
+Su un host Linux con Docker Engine, plugin Compose e un utente con UID/GID `1000:1000` abilitato a usare Docker. Python sull’host non è necessario: il bootstrap usa l’immagine `python:3.12-alpine`.
 
 ```bash
 git clone <URL_DEL_REPOSITORY> mmedia
@@ -120,7 +120,7 @@ cd mmedia
 ./go.sh
 ```
 
-`go.sh` esegue `install.sh`, avvia Compose e applica `bootstrap.py`. Lo script può essere rilanciato: verifica le configurazioni esistenti e aggiorna i collegamenti senza ricreare account o librerie. Al primo avvio Jellyfin crea l'utente `admin` con password casuale, salvata **solo localmente** in `secrets/jellyfin-admin.txt` (permessi 600). Conservala in un gestore di password. La chiave API per i collegamenti è in `secrets/jellyfin-api-key` e non va pubblicata. Se Jellyfin era già configurato, lo script mantiene l'utente esistente e usa una chiave API locale; non ne cambia la password.
+`go.sh` esegue `install.sh`, avvia Compose e lancia `bootstrap.py` nel servizio Docker temporaneo `bootstrap` (profilo `tools`, rete host, solo durante la configurazione). Lo script può essere rilanciato: verifica le configurazioni esistenti e aggiorna i collegamenti senza ricreare account o librerie. Al primo avvio Jellyfin crea l'utente `admin` con password casuale, salvata **solo localmente** in `secrets/jellyfin-admin.txt` (permessi 600). Conservala in un gestore di password. La chiave API per i collegamenti è in `secrets/jellyfin-api-key` e non va pubblicata. Se Jellyfin era già configurato, lo script mantiene l'utente esistente e usa una chiave API locale; non ne cambia la password.
 
 ### Operazioni eseguite automaticamente
 
@@ -143,6 +143,6 @@ cd mmedia
 
 | In Git | Fuori da Git |
 | --- | --- |
-| `docker-compose.yml`, `go.sh`, `install.sh`, `bootstrap.py`, `nginx/default.conf`, `transmission/settings.json`, `README.md`, `.gitignore` | `.env`, `secrets/`, `config/`, `cache/`, `render-cache/`, `media/`, `downloads/`, `transmission/config/`, `prowlarr/config/`, `radarr/config/`, `lidarr/config/`, `wireguard/config/`, log e database |
+| `docker-compose.yml`, `go.sh`, `install.sh`, `bootstrap.py`, `nginx/default.conf`, `transmission/settings.json`, `README.md`, `.gitignore` | `.env`, `secrets/`, `jellyfin/`, `media/`, `downloads/`, `transmission/config/`, `prowlarr/config/`, `radarr/config/`, `lidarr/config/`, `wireguard/config/`, log e database |
 
 Le directory escluse contengono password, chiavi API, chiavi private VPN, configurazioni personali, database e contenuti multimediali. `.gitignore` impedisce nuovi inserimenti accidentali, ma **non rimuove segreti già presenti nella cronologia Git**: se questo repository è stato pubblicato, rigenera password, token e chiavi VPN e bonifica la cronologia prima di condividerlo di nuovo. I file runtime sono stati tolti dall'indice Git senza cancellare le copie locali.

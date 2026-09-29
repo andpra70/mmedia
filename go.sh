@@ -4,7 +4,7 @@ set -euo pipefail
 cd "$(dirname "$0")"
 ./install.sh
 docker compose up -d
-python3 bootstrap.py
+docker compose --profile tools run --rm --no-deps bootstrap
 
 urls=(
   http://localhost:8080/

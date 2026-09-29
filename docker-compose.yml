@@ -6,9 +6,9 @@ services:
     devices:
       - /dev/dri:/dev/dri
     volumes:
-      - ./config:/config
-      - ./cache:/cache
-      - ./render-cache:/config/data/render-cache
+      - ./jellyfin/config:/config
+      - ./jellyfin/cache:/cache
+      - ./jellyfin/render-cache:/config/data/render-cache
       - ./media/movies:/media/movies:ro
       - ./media/tvshows:/media/tvshows:ro
       - ./media/music:/media/music:ro
@@ -109,3 +109,13 @@ services:
     volumes:
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
     restart: unless-stopped
+
+  bootstrap:
+    image: python:3.12-alpine
+    profiles: [tools]
+    network_mode: host
+    user: "1000:1000"
+    working_dir: /workspace
+    volumes:
+      - ./:/workspace
+    command: ["python3", "bootstrap.py"]

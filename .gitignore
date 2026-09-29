@@ -1,0 +1,14 @@
+.env
+config/
+cache/
+render-cache/
+media/
+downloads/
+logs/
+transmission/config/
+prowlarr/config/
+radarr/config/
+lidarr/config/
+wireguard/config/
+__pycache__/
+secrets/

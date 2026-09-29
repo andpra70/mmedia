@@ -1,0 +1,111 @@
+services:
+  jellyfin:
+    image: jellyfin/jellyfin:latest
+    container_name: jellyfin
+    user: "1000:1000"
+    devices:
+      - /dev/dri:/dev/dri
+    volumes:
+      - ./config:/config
+      - ./cache:/cache
+      - ./render-cache:/config/data/render-cache
+      - ./media/movies:/media/movies:ro
+      - ./media/tvshows:/media/tvshows:ro
+      - ./media/music:/media/music:ro
+    restart: unless-stopped
+
+  transmission:
+    image: lscr.io/linuxserver/transmission:latest
+    container_name: transmission
+    environment:
+      PUID: "1000"
+      PGID: "1000"
+      TZ: Europe/Paris
+    volumes:
+      - ./transmission/config:/config
+      - ./downloads:/downloads
+    ports:
+      - "51413:51413"
+      - "51413:51413/udp"
+    restart: unless-stopped
+
+  prowlarr:
+    image: lscr.io/linuxserver/prowlarr:latest
+    container_name: prowlarr
+    environment:
+      PUID: "1000"
+      PGID: "1000"
+      TZ: Europe/Paris
+    volumes:
+      - ./prowlarr/config:/config
+    restart: unless-stopped
+
+  radarr:
+    image: lscr.io/linuxserver/radarr:latest
+    container_name: radarr
+    environment:
+      PUID: "1000"
+      PGID: "1000"
+      TZ: Europe/Paris
+    volumes:
+      - ./radarr/config:/config
+      - ./downloads:/downloads
+      - ./media/movies:/media/movies
+    restart: unless-stopped
+
+  lidarr:
+    image: lscr.io/linuxserver/lidarr:latest
+    container_name: lidarr
+    environment:
+      PUID: "1000"
+      PGID: "1000"
+      TZ: Europe/Paris
+    volumes:
+      - ./lidarr/config:/config
+      - ./downloads:/downloads
+      - ./media/music:/media/music
+    restart: unless-stopped
+
+  wireguard:
+    image: lscr.io/linuxserver/wireguard:latest
+    container_name: mmedia-wireguard
+    cap_add:
+      - NET_ADMIN
+    environment:
+      PUID: "1000"
+      PGID: "1000"
+      TZ: Europe/Paris
+      SERVERURL: ${WIREGUARD_ENDPOINT:-auto}
+      SERVERPORT: "51820"
+      PEERS: "1"
+      PEERDNS: auto
+      INTERNAL_SUBNET: 10.13.13.0
+      ALLOWEDIPS: 10.13.13.0/24
+      LOG_CONFS: "false"
+    volumes:
+      - ./wireguard/config:/config
+    ports:
+      - "51820:51820/udp"
+      - "127.0.0.1:8080:8080"
+      - "127.0.0.1:9091:9091"
+      - "127.0.0.1:9696:9696"
+      - "127.0.0.1:7878:7878"
+      - "127.0.0.1:8686:8686"
+    sysctls:
+      - net.ipv4.conf.all.src_valid_mark=1
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:stable-alpine
+    container_name: mmedia-nginx
+    network_mode: service:wireguard
+    depends_on:
+      - wireguard
+      - jellyfin
+      - transmission
+      - prowlarr
+      - radarr
+      - lidarr
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    restart: unless-stopped

@@ -12,7 +12,8 @@ import urllib.request
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
-SERVICES = {'radarr': (7878, 3), 'lidarr': (8686, 1), 'prowlarr': (9696, 1)}
+SERVICES = {'radarr': (51001, 3), 'lidarr': (51002, 1), 'prowlarr': (51003, 1)}
+INTERNAL_PORTS = {'radarr': 7878, 'lidarr': 8686, 'prowlarr': 9696}
 
 
 def key(name):
@@ -145,7 +146,7 @@ def setup_prowlarr():
     for name in ('radarr', 'lidarr'):
         ensure('prowlarr', 'applications', name.capitalize(), name.capitalize(),
                {'prowlarrUrl': 'http://prowlarr:9696',
-                'baseUrl': f'http://{name}:{SERVICES[name][0]}', 'apiKey': key(name)},
+                'baseUrl': f'http://{name}:{INTERNAL_PORTS[name]}', 'apiKey': key(name)},
                {'enable': True, 'syncLevel': 'fullSync'})
     # Indexer availability and legality vary; add desired sources in the Prowlarr UI.
     try:
@@ -161,7 +162,7 @@ def jelly_call(path, method='GET', payload=None, token=None):
     if token:
         authorization += f', Token="{token}"'
     headers = {'Content-Type': 'application/json', 'Authorization': authorization}
-    request = urllib.request.Request('http://127.0.0.1:8080/' + path,
+    request = urllib.request.Request('http://127.0.0.1:51000/' + path,
                                      data=data, method=method, headers=headers)
     with urllib.request.urlopen(request, timeout=20) as response:
         body = response.read()

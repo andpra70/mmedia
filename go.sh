@@ -3,15 +3,15 @@ set -euo pipefail
 
 cd "$(dirname "$0")"
 ./install.sh
-docker compose up -d
+docker compose up -d --remove-orphans
 docker compose --profile tools run --rm --no-deps bootstrap
 
 urls=(
-  http://localhost:8080/
-  http://localhost:7878/
-  http://localhost:8686/
-  http://localhost:9696/
-  http://localhost:9091/transmission/web/
+  http://localhost:51000/
+  http://localhost:51001/
+  http://localhost:51002/
+  http://localhost:51003/
+  http://localhost:51004/transmission/web/
 )
 
 if command -v google-chrome >/dev/null 2>&1; then

@@ -158,6 +158,10 @@ def setup_prowlarr():
             print(f'Prowlarr: {label} non aggiunto ({reason})')
     print(f'Prowlarr: indexer pubblici: {added} aggiunti, {skipped} già presenti, {failed} non disponibili')
 
+    ensure('prowlarr', 'downloadclient', 'Transmission', 'Transmission',
+           {'host': 'transmission', 'port': 9091, 'urlBase': '/transmission/',
+            'category': 'prowlarr'}, {'enable': True})
+
     for name in ('radarr', 'lidarr'):
         ensure('prowlarr', 'applications', name.capitalize(), name.capitalize(),
                {'prowlarrUrl': 'http://prowlarr:9696',

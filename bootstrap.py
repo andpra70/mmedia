@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Idempotent local setup for the Arr services. Uses only Python's standard library."""
 import http.client
+import copy
 import json
 import os
 import secrets
@@ -124,25 +125,39 @@ def setup_prowlarr():
     profiles = call('prowlarr', 'appprofile')
     if not profiles:
         raise RuntimeError('Prowlarr: nessun profilo applicativo disponibile')
-    for label, definition in [('The Pirate Bay', 'thepiratebay'),
-                              ('YTS', 'yts'), ('TorrentDownload', 'torrentdownload'),
-                              ('Nyaa.si', 'nyaasi')]:
+
+    # Il catalogo cambia a ogni aggiornamento di Prowlarr. Selezionarlo a runtime
+    # evita una lista statica destinata a diventare incompleta o obsoleta.
+    public_torrents = sorted(
+        (x for x in schema
+         if str(x.get('protocol', '')).lower() == 'torrent'
+         and str(x.get('privacy', '')).lower() == 'public'),
+        key=lambda x: x.get('name', '').casefold())
+    added = 0
+    skipped = 0
+    failed = 0
+    for source in public_torrents:
+        label = source.get('name')
+        if not label:
+            continue
         if label in existing:
+            skipped += 1
             continue
-        template = next((x for x in schema if any(
-            f['name'] == 'definitionFile' and f.get('value') == definition
-            for f in x.get('fields', []))), None)
-        if not template:
-            print(f'Prowlarr: definizione {label} non disponibile')
-            continue
+        template = copy.deepcopy(source)
         template['name'] = label
         template['enable'] = True
         template['appProfileId'] = profiles[0]['id']
         try:
             call('prowlarr', 'indexer', 'POST', template)
+            existing.add(label)
+            added += 1
             print(f'Prowlarr: indexer {label} aggiunto')
-        except urllib.error.HTTPError as error:
-            print(f'Prowlarr: {label} non aggiunto (HTTP {error.code}); configurarlo dalla UI')
+        except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError) as error:
+            failed += 1
+            reason = f'HTTP {error.code}' if isinstance(error, urllib.error.HTTPError) else str(error)
+            print(f'Prowlarr: {label} non aggiunto ({reason})')
+    print(f'Prowlarr: indexer pubblici: {added} aggiunti, {skipped} già presenti, {failed} non disponibili')
+
     for name in ('radarr', 'lidarr'):
         ensure('prowlarr', 'applications', name.capitalize(), name.capitalize(),
                {'prowlarrUrl': 'http://prowlarr:9696',

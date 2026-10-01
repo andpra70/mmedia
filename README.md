@@ -1,6 +1,6 @@
 # mmedia: Jellyfin, torrent e libreria multimediale
 
-Questo stack usa **Jellyfin** per riprodurre, **Prowlarr** per gestire gli indexer, **Radarr** per i film, **Lidarr** per la musica e **Transmission**, **uTorrent** o **qBittorrent** per scaricare. **Nginx** è il punto di accesso web a tutte le interfacce.
+Questo stack usa **Jellyfin** per riprodurre, **Prowlarr** e **Jackett** per gestire gli indexer, **Radarr** per i film, **Lidarr** per la musica e **Transmission**, **uTorrent** o **qBittorrent** per scaricare.
 
 Usa soltanto torrent e contenuti che hai il diritto di scaricare e condividere.
 
@@ -13,7 +13,7 @@ Servono Docker Engine con `docker compose` e un utente autorizzato a usare Docke
 ./go.sh
 ```
 
-`install.sh` crea le directory e prepara le impostazioni iniziali dei client torrent. `go.sh` avvia i container e apre le sette interfacce nel browser. I dati Jellyfin sono sotto `jellyfin/`; `install.sh` migra automaticamente le vecchie directory `config/`, `cache/` e `render-cache/` se presenti. Per arrestare: `docker compose down`. Per controllare: `docker compose ps` e `docker compose logs -f NOME_SERVIZIO`.
+`install.sh` crea le directory e prepara le impostazioni iniziali dei client torrent. `go.sh` avvia i container e apre le otto interfacce nel browser. I dati Jellyfin sono sotto `jellyfin/`; `install.sh` migra automaticamente le vecchie directory `config/`, `cache/` e `render-cache/` se presenti. Per arrestare: `docker compose down`. Per controllare: `docker compose ps` e `docker compose logs -f NOME_SERVIZIO`.
 
 Se aggiorni una vecchia installazione, `go.sh` rimuove il container WireGuard ormai orfano. L'eventuale directory locale `wireguard/` non viene cancellata automaticamente perché contiene chiavi private: dopo avere verificato che non ti serva più, eliminala manualmente con attenzione.
 
@@ -28,8 +28,9 @@ Se aggiorni una vecchia installazione, `go.sh` rimuove il container WireGuard or
 | Transmission | [http://localhost:51004/transmission/web/](http://localhost:51004/transmission/web/) | Controlla i download |
 | uTorrent | [http://localhost:51005/gui/](http://localhost:51005/gui/) | Client torrent alternativo |
 | qBittorrent | [http://localhost:51006/](http://localhost:51006/) | Client torrent alternativo |
+| Jackett | [http://localhost:51007/](http://localhost:51007/) | Indexer per la ricerca integrata di qBittorrent |
 
-Le porte web sono pubblicate su tutte le interfacce della host (`0.0.0.0`) nell'intervallo `51000-51006`. Le porte BitTorrent `51413` (Transmission), `51414` (uTorrent) e `51415` (qBittorrent), TCP/UDP, restano pubblicate per il traffico peer e non sono UI. Limita l'accesso con il firewall della host e con le regole del router.
+Le porte web sono pubblicate su tutte le interfacce della host (`0.0.0.0`) nell'intervallo `51000-51007`. Le porte BitTorrent `51413` (Transmission), `51414` (uTorrent) e `51415` (qBittorrent), TCP/UDP, restano pubblicate per il traffico peer e non sono UI. Limita l'accesso con il firewall della host e con le regole del router.
 
 ### Accesso remoto tramite NAT o VPN del router
 
@@ -76,10 +77,13 @@ Lidarr gestisce soprattutto artisti e album; per un singolo brano è più pratic
 | `*/config` | `/config` | Stato dei nuovi servizi |
 | `utorrent/settings` | `/utorrent/settings` | Configurazione persistente di uTorrent |
 | `qbittorrent/config` | `/config` | Configurazione persistente di qBittorrent |
+| `jackett/config` | `/config` | Configurazione e API key persistenti di Jackett |
 
 uTorrent usa `/data/incomplete` durante il download e sposta i torrent terminati in `/data/complete`; sul sistema host corrispondono rispettivamente a `downloads/incomplete` e `downloads/complete`. La WebUI parte con utente `admin` e password vuota: impostane subito una dalle preferenze prima di consentire accessi dalla rete.
 
 qBittorrent usa `/downloads/incomplete` durante il download e `/downloads/complete` al termine. Al primo avvio genera una password temporanea per l'utente `admin`: recuperala con `docker compose logs qbittorrent` e cambiala dalle impostazioni della WebUI.
+
+Il plugin Jackett della ricerca integrata di qBittorrent viene configurato automaticamente da `go.sh`: usa `http://jackett:9117` sulla rete Compose e la API key generata localmente in `jackett/config`. Prima di cercare, aggiungi e prova gli indexer desiderati dalla UI di Jackett sulla porta `51007`.
 
 Radarr e Lidarr copiano o collegano i file nella libreria. Non impostare la destinazione di Transmission direttamente in `media/movies` o `media/music`: i client torrent possono continuare a usare i file per il seeding e Jellyfin deve vedere solo la libreria importata. Se un servizio mostra *Permission denied*, verifica proprietà e permessi delle directory host con `ls -ln` e confrontali con UID/GID `1000:1000`.
 
@@ -95,6 +99,7 @@ host:51003  → nginx:9696 → prowlarr:9696
 host:51004  → nginx:9091 → transmission:9091
 host:51005  → nginx:8081 → utorrent:8080
 host:51006  → qbittorrent:51006
+host:51007  → jackett:9117
 ```
 
 Nginx pubblica le prime sei UI; qBittorrent espone direttamente `51006` perché la sua protezione CSRF richiede che la porta WebUI interna ed esterna coincidano. Le route Nginx usano `proxy_pass` e passano gli header dell'host e del client; quella Jellyfin supporta WebSocket e streaming. Le root sulle porte pubbliche `51004` e `51005` reindirizzano rispettivamente alle UI di Transmission e uTorrent.
@@ -106,6 +111,7 @@ Jellyfin è sulla rete Docker, anziché in `network_mode: host`: l'accesso web e
 - [Transmission Docker](https://docs.linuxserver.io/images/docker-transmission/)
 - [uTorrent Docker](https://hub.docker.com/r/ekho/utorrent/)
 - [qBittorrent Docker](https://docs.linuxserver.io/images/docker-qbittorrent/)
+- [Jackett Docker](https://docs.linuxserver.io/images/docker-jackett/)
 - [Prowlarr Docker](https://docs.linuxserver.io/images/docker-prowlarr/)
 - [Radarr Docker](https://docs.linuxserver.io/images/docker-radarr/)
 - [Lidarr Docker](https://docs.linuxserver.io/images/docker-lidarr/)
@@ -131,12 +137,12 @@ cd mmedia
 4. Configura Transmission in Radarr, Lidarr e Prowlarr usando `transmission:9091` e RPC `/transmission/`, con le categorie `radarr`, `lidarr` e `prowlarr`; attiva la rinomina dei brani in Lidarr per creare cartelle per album.
 5. Tenta di aggiungere tutte le definizioni torrent pubbliche disponibili nel catalogo installato di Prowlarr, collega Prowlarr a Radarr e Lidarr e sincronizza gli indexer configurati. Se un indexer non è disponibile, stampa un avviso e prosegue.
 6. Completa la prima configurazione di Jellyfin, aggiunge le librerie Film e Musica e collega Radarr e Lidarr a Jellyfin per richiedere una scansione dopo gli import.
-7. Pubblica le UI sulle porte host `51000-51006`; qBittorrent usa direttamente `51006`, le altre passano da Nginx. Le applicazioni comunicano sulla rete Compose usando i rispettivi nomi di servizio.
+7. Pubblica le UI sulle porte host `51000-51007`; qBittorrent e Jackett usano direttamente `51006` e `51007`, le altre passano da Nginx. Le applicazioni comunicano sulla rete Compose usando i rispettivi nomi di servizio.
 
 ### Da completare sul nuovo host
 
 - In Prowlarr, controlla gli indexer preconfigurati con **Indexers → Test** e aggiungi gli altri a cui hai accesso. Gli indexer pubblici possono cambiare URL o non rispondere; quelli privati richiedono le tue credenziali. La sincronizzazione verso Radarr e Lidarr è già configurata.
-- Per l'accesso remoto, configura sul router la sua VPN oppure inoltra soltanto le porte host necessarie (`51000-51006`) all'indirizzo LAN del server. Questa operazione dipende dal router e non può essere fatta dal repository.
+- Per l'accesso remoto, configura sul router la sua VPN oppure inoltra soltanto le porte host necessarie (`51000-51007`) all'indirizzo LAN del server. Questa operazione dipende dal router e non può essere fatta dal repository.
 - Se devi migrare film, musica, torrent o database dalla vecchia macchina, copia separatamente `media/`, `downloads/` e le directory di configurazione con i container fermi. Un clone Git crea un'installazione nuova, senza il catalogo e i file della vecchia macchina.
 - Verifica l'avvio con `docker compose ps`, poi prova una ricerca in Radarr/Lidarr e controlla che un download completato venga importato in `media/` e appaia in Jellyfin.
 
@@ -144,6 +150,6 @@ cd mmedia
 
 | In Git | Fuori da Git |
 | --- | --- |
-| `docker-compose.yml`, `go.sh`, `install.sh`, `bootstrap.py`, `nginx/default.conf`, `transmission/settings.json`, `qbittorrent/qBittorrent.conf`, `README.md`, `.gitignore` | `.env`, `secrets/`, `jellyfin/`, `media/`, `downloads/`, `transmission/config/`, `utorrent/settings/`, `qbittorrent/config/`, `prowlarr/config/`, `radarr/config/`, `lidarr/config/`, log e database |
+| `docker-compose.yml`, `go.sh`, `install.sh`, `configure-qbittorrent-jackett.sh`, `bootstrap.py`, `nginx/default.conf`, `transmission/settings.json`, `qbittorrent/qBittorrent.conf`, `README.md`, `.gitignore` | `.env`, `secrets/`, `jellyfin/`, `media/`, `downloads/`, `transmission/config/`, `utorrent/settings/`, `qbittorrent/config/`, `jackett/config/`, `prowlarr/config/`, `radarr/config/`, `lidarr/config/`, log e database |
 
 Le directory escluse contengono password, chiavi API, configurazioni personali, database e contenuti multimediali. `.gitignore` impedisce nuovi inserimenti accidentali, ma **non rimuove segreti già presenti nella cronologia Git**: se questo repository è stato pubblicato, rigenera password e token e bonifica la cronologia prima di condividerlo di nuovo. I file runtime sono stati tolti dall'indice Git senza cancellare le copie locali.

@@ -6,6 +6,7 @@ logs/
 transmission/config/
 utorrent/settings/
 qbittorrent/config/
+jackett/config/
 prowlarr/config/
 radarr/config/
 lidarr/config/

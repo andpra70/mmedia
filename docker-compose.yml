@@ -67,6 +67,21 @@ services:
     stop_grace_period: 10s
     restart: unless-stopped
 
+  jackett:
+    image: lscr.io/linuxserver/jackett:latest
+    container_name: jackett
+    environment:
+      PUID: "1000"
+      PGID: "1000"
+      TZ: Europe/Rome
+      AUTO_UPDATE: "true"
+    volumes:
+      - ./jackett/config:/config
+      - ./downloads:/downloads
+    ports:
+      - "51007:9117"
+    restart: unless-stopped
+
   prowlarr:
     image: lscr.io/linuxserver/prowlarr:latest
     container_name: prowlarr

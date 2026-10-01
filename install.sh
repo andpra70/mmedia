@@ -31,7 +31,7 @@ fi
 mkdir -p jellyfin/config/data jellyfin/cache jellyfin/render-cache
 mkdir -p media/movies media/music media/tvshows
 mkdir -p downloads/complete/lidarr downloads/complete/radarr downloads/incomplete
-mkdir -p transmission/config utorrent/settings qbittorrent/config/qBittorrent prowlarr/config radarr/config lidarr/config
+mkdir -p transmission/config utorrent/settings qbittorrent/config/qBittorrent jackett/config prowlarr/config radarr/config lidarr/config
 chmod 775 media media/movies media/music media/tvshows downloads downloads/complete downloads/incomplete downloads/complete/lidarr downloads/complete/radarr
 
 if [ ! -f transmission/config/settings.json ]; then

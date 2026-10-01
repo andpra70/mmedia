@@ -11,6 +11,8 @@ services:
       - ./jellyfin/render-cache:/config/data/render-cache
       - ./data/media:/media:ro
       - ./data/media:/media:ro
+    ports:
+      - "51000:8096"
     restart: unless-stopped
 
   qbittorrent:
@@ -45,17 +47,6 @@ services:
       - ./data:/data
     ports:
       - "51007:9117"
-    restart: unless-stopped
-
-  nginx:
-    image: nginx:stable-alpine
-    container_name: mmedia-nginx
-    ports:
-      - "51000:8080"
-    depends_on:
-      - jellyfin
-    volumes:
-      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
     restart: unless-stopped
 
   bootstrap:

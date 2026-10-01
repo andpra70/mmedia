@@ -91,23 +91,17 @@ Il plugin Jackett della ricerca integrata di qBittorrent viene configurato autom
 
 Il singolo mount `/data` permette a Radarr e Lidarr di creare hardlink: download e libreria non occupano due volte lo spazio. Dopo l'importazione il download viene rimosso e Jellyfin vede solo la libreria organizzata. Se un servizio mostra *Permission denied*, verifica proprietà e permessi con `ls -ln` e confrontali con UID/GID `1000:1000`.
 
-## Come funziona Nginx
+## Porte pubblicate
 
-La configurazione è in [`nginx/default.conf`](nginx/default.conf). Ogni porta esterna inoltra l'intera richiesta a un servizio sulla rete Docker:
+I servizi espongono direttamente le rispettive porte, senza reverse proxy:
 
 ```text
-host:51000  → nginx:8080 → jellyfin:8096
-host:51001  → nginx:7878 → radarr:7878
-host:51002  → nginx:8686 → lidarr:8686
-host:51003  → nginx:9696 → prowlarr:9696
-host:51004  → nginx:9091 → transmission:9091
+host:51000  → jellyfin:8096
 host:51006  → qbittorrent:51006
 host:51007  → jackett:9117
 ```
 
-Nginx pubblica Jellyfin, Radarr, Lidarr, Prowlarr e Transmission; qBittorrent espone direttamente `51006` perché la sua protezione CSRF richiede che la porta WebUI interna ed esterna coincidano.
-
-Jellyfin è sulla rete Docker, anziché in `network_mode: host`: l'accesso web e lo streaming passano da Nginx; funzioni basate su discovery/multicast come DLNA possono richiedere una configurazione di rete aggiuntiva. Per app e TV Jellyfin usa `http://IP_SERVER:51000/`.
+Per app e TV Jellyfin usa `http://IP_SERVER:51000/`.
 
 ## Collegamenti alla documentazione
 
@@ -134,12 +128,12 @@ cd mmedia
 ### Operazioni eseguite automaticamente
 
 1. Verifica Docker, Compose e UID/GID 1000:1000; crea le directory `downloads`, `media` e quelle di configurazione con i permessi necessari.
-2. Copia le impostazioni iniziali di Transmission e qBittorrent; avvia Jellyfin, i due client torrent, Prowlarr, Radarr, Lidarr e Nginx.
+2. Copia le impostazioni iniziali di qBittorrent e avvia Jellyfin, qBittorrent e Jackett.
 3. Aspetta che le API locali siano disponibili; crea in Radarr `/data/media/movies` e in Lidarr `/data/media/music` come cartelle radice.
 4. Configura qBittorrent in Radarr, Lidarr e Prowlarr usando `qbittorrent:51006`, con le categorie `radarr`, `lidarr` e `prowlarr`; disabilita il vecchio client Transmission e attiva la rinomina dei brani in Lidarr per creare cartelle per album.
 5. Tenta di aggiungere tutte le definizioni torrent pubbliche disponibili nel catalogo installato di Prowlarr, collega Prowlarr a Radarr e Lidarr e sincronizza gli indexer configurati. Se un indexer non è disponibile, stampa un avviso e prosegue.
 6. Completa la prima configurazione di Jellyfin, aggiunge le librerie Film e Musica e collega Radarr e Lidarr a Jellyfin per richiedere una scansione dopo gli import.
-7. Pubblica le UI sulle porte host `51000-51004`, `51006` e `51007`; qBittorrent e Jackett usano direttamente `51006` e `51007`, le altre passano da Nginx.
+7. Pubblica direttamente le UI sulle porte host `51000`, `51006` e `51007`.
 
 ### Da completare sul nuovo host
 
@@ -152,6 +146,6 @@ cd mmedia
 
 | In Git | Fuori da Git |
 | --- | --- |
-| `docker-compose.yml`, `go.sh`, `install.sh`, `migrate-data-layout.sh`, `apply-on-server.sh`, `configure-qbittorrent-jackett.sh`, `bootstrap.py`, `nginx/default.conf`, i template e `README.md` | `.env`, `secrets/`, `jellyfin/`, `data/`, le vecchie directory `media/`, `downloads/`, `utorrent/` e tutte le configurazioni runtime |
+| `docker-compose.yml`, `go.sh`, `install.sh`, `migrate-data-layout.sh`, `apply-on-server.sh`, `configure-qbittorrent-jackett.sh`, `bootstrap.py`, i template e `README.md` | `.env`, `secrets/`, `jellyfin/`, `data/`, le vecchie directory `media/`, `downloads/`, `utorrent/` e tutte le configurazioni runtime |
 
 Le directory escluse contengono password, chiavi API, configurazioni personali, database e contenuti multimediali. `.gitignore` impedisce nuovi inserimenti accidentali, ma **non rimuove segreti già presenti nella cronologia Git**: se questo repository è stato pubblicato, rigenera password e token e bonifica la cronologia prima di condividerlo di nuovo. I file runtime sono stati tolti dall'indice Git senza cancellare le copie locali.

@@ -6,7 +6,6 @@ cd "$(dirname "$0")"
 docker compose up -d --remove-orphans
 python3 ./configure-qbittorrent-auth.py
 ./configure-qbittorrent-jackett.sh
-docker compose --profile tools run --rm --no-deps bootstrap
 
 urls=(
   http://localhost:51000/
@@ -24,4 +23,4 @@ else
   printf 'Interfacce web:\n%s\n' "${urls[@]}"
 fi
 
-docker logs qbittorrent
+printf 'Stack avviato correttamente.\n'

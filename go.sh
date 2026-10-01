@@ -13,7 +13,6 @@ urls=(
   http://localhost:51002/
   http://localhost:51003/
   http://localhost:51004/transmission/web/
-  http://localhost:51005/gui/
   http://localhost:51006/
   http://localhost:51007/
 )

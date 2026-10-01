@@ -107,11 +107,40 @@ def root(name, path):
     print(f'{name}: root {path}')
 
 
+def migrate_library_paths(name, old_root, new_root):
+    route = 'movie' if name == 'radarr' else 'artist'
+    changed = 0
+    for item in call(name, route):
+        old_path = item.get('path', '')
+        if old_path == old_root or old_path.startswith(old_root + '/'):
+            item['path'] = new_root + old_path[len(old_root):]
+            call(name, f"{route}/{item['id']}?moveFiles=false", 'PUT', item)
+            changed += 1
+    if changed:
+        print(f'{name}: migrati {changed} percorsi da {old_root} a {new_root}')
+    old = next((x for x in call(name, 'rootfolder') if x['path'] == old_root), None)
+    if old:
+        call(name, f"rootfolder/{old['id']}", 'DELETE')
+        print(f'{name}: rimossa root obsoleta {old_root}')
+
+
 def setup_arr(name, path, category):
     root(name, path)
+    old_path = '/media/movies' if name == 'radarr' else '/media/music'
+    migrate_library_paths(name, old_path, path)
     ensure(name, 'downloadclient', 'Transmission', 'Transmission',
            {'host': 'transmission', 'port': 9091, 'urlBase': '/transmission/',
             category: name}, {'enable': True})
+    media = call(name, 'config/mediamanagement')
+    if 'copyUsingHardlinks' in media:
+        media['copyUsingHardlinks'] = True
+        call(name, 'config/mediamanagement', 'PUT', media)
+    downloads = call(name, 'config/downloadclient')
+    downloads['enableCompletedDownloadHandling'] = True
+    if 'removeCompletedDownloads' in downloads:
+        downloads['removeCompletedDownloads'] = True
+    call(name, 'config/downloadclient', 'PUT', downloads)
+    print(f'{name}: hardlink, import completati e rimozione download abilitati')
     if name == 'lidarr':
         naming = call(name, 'config/naming')
         if not naming['renameTracks']:
@@ -254,8 +283,8 @@ def setup_notifications(token):
 def main():
     for name in SERVICES:
         ready(name)
-    setup_arr('radarr', '/media/movies', 'movieCategory')
-    setup_arr('lidarr', '/media/music', 'musicCategory')
+    setup_arr('radarr', '/data/media/movies', 'movieCategory')
+    setup_arr('lidarr', '/data/media/music', 'musicCategory')
     setup_prowlarr()
     token = setup_jellyfin()
     setup_notifications(token)

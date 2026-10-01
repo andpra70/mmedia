@@ -29,10 +29,16 @@ if [ "$legacy" -eq 1 ]; then
   echo "Dati Jellyfin migrati in jellyfin/"
 fi
 mkdir -p jellyfin/config/data jellyfin/cache jellyfin/render-cache
-mkdir -p media/movies media/music media/tvshows
-mkdir -p downloads/complete/lidarr downloads/complete/radarr downloads/incomplete
-mkdir -p transmission/config utorrent/settings qbittorrent/config/qBittorrent jackett/config prowlarr/config radarr/config lidarr/config
-chmod 775 media media/movies media/music media/tvshows downloads downloads/complete downloads/incomplete downloads/complete/lidarr downloads/complete/radarr
+if [ -e media ] || [ -e downloads ]; then
+  echo "Layout precedente rilevato: esegui prima ./migrate-data-layout.sh" >&2
+  exit 1
+fi
+mkdir -p data/media/movies data/media/music data/media/tvshows
+mkdir -p data/downloads/complete/lidarr data/downloads/complete/radarr data/downloads/incomplete
+mkdir -p transmission/config qbittorrent/config/qBittorrent jackett/config prowlarr/config radarr/config lidarr/config
+chmod 775 data data/media data/media/movies data/media/music data/media/tvshows \
+  data/downloads data/downloads/complete data/downloads/incomplete \
+  data/downloads/complete/lidarr data/downloads/complete/radarr
 
 if [ ! -f transmission/config/settings.json ]; then
   cp transmission/settings.json transmission/config/settings.json

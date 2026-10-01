@@ -1,7 +1,9 @@
 {
-  "download-dir": "/downloads/complete",
-  "incomplete-dir": "/downloads/incomplete",
+  "download-dir": "/data/downloads/complete",
+  "incomplete-dir": "/data/downloads/incomplete",
   "incomplete-dir-enabled": true,
   "download-queue-enabled": true,
-  "download-queue-size": 10
+  "download-queue-size": 10,
+  "ratio-limit": 0,
+  "ratio-limit-enabled": true
 }

@@ -10,6 +10,7 @@ services:
       - ./jellyfin/cache:/cache
       - ./jellyfin/render-cache:/config/data/render-cache
       - ./data/media:/media:ro
+      - ./data/media:/media:ro
     restart: unless-stopped
 
   transmission:
@@ -121,6 +122,9 @@ services:
     network_mode: host
     user: "1000:1000"
     working_dir: /workspace
+    environment:
+      QBITTORRENT_USERNAME: "${QBITTORRENT_USERNAME:-admin}"
+      QBITTORRENT_PASSWORD: "${QBITTORRENT_PASSWORD:-}"
     volumes:
       - ./:/workspace
     command: ["python3", "bootstrap.py"]

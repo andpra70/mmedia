@@ -17,6 +17,32 @@ SERVICES = {'radarr': (51001, 3), 'lidarr': (51002, 1), 'prowlarr': (51003, 1)}
 INTERNAL_PORTS = {'radarr': 7878, 'lidarr': 8686, 'prowlarr': 9696}
 
 
+def qbittorrent_credentials():
+    username = os.environ.get('QBITTORRENT_USERNAME', 'admin').strip()
+    password = os.environ.get('QBITTORRENT_PASSWORD', '')
+    if not username or not password:
+        raise RuntimeError(
+            'qBittorrent: imposta QBITTORRENT_USERNAME e QBITTORRENT_PASSWORD '
+            'nel file .env; la password deve coincidere con quella della WebUI')
+    return username, password
+
+
+def setup_qbittorrent_client(name, category_field, category):
+    username, password = qbittorrent_credentials()
+    ensure(name, 'downloadclient', 'QBittorrent', 'qBittorrent',
+           {'host': 'qbittorrent', 'port': 51006, 'useSsl': False,
+            'urlBase': '', 'username': username, 'password': password,
+            category_field: category}, {'enable': True})
+
+    # Le vecchie installazioni configuravano Transmission. Disabilitarlo evita
+    # che Arr continui a sceglierlo al posto di qBittorrent.
+    for client in call(name, 'downloadclient'):
+        if client.get('name') == 'Transmission' and client.get('enable', True):
+            client['enable'] = False
+            call(name, f"downloadclient/{client['id']}", 'PUT', client)
+            print(f'{name}: Transmission disabilitato')
+
+
 def key(name):
     path = Path(name) / 'config/config.xml'
     for _ in range(90):
@@ -128,9 +154,7 @@ def setup_arr(name, path, category):
     root(name, path)
     old_path = '/media/movies' if name == 'radarr' else '/media/music'
     migrate_library_paths(name, old_path, path)
-    ensure(name, 'downloadclient', 'Transmission', 'Transmission',
-           {'host': 'transmission', 'port': 9091, 'urlBase': '/transmission/',
-            category: name}, {'enable': True})
+    setup_qbittorrent_client(name, category, name)
     media = call(name, 'config/mediamanagement')
     if 'copyUsingHardlinks' in media:
         media['copyUsingHardlinks'] = True
@@ -187,9 +211,7 @@ def setup_prowlarr():
             print(f'Prowlarr: {label} non aggiunto ({reason})')
     print(f'Prowlarr: indexer pubblici: {added} aggiunti, {skipped} già presenti, {failed} non disponibili')
 
-    ensure('prowlarr', 'downloadclient', 'Transmission', 'Transmission',
-           {'host': 'transmission', 'port': 9091, 'urlBase': '/transmission/',
-            'category': 'prowlarr'}, {'enable': True})
+    setup_qbittorrent_client('prowlarr', 'category', 'prowlarr')
 
     for name in ('radarr', 'lidarr'):
         ensure('prowlarr', 'applications', name.capitalize(), name.capitalize(),

@@ -12,6 +12,8 @@ urls=(
   http://localhost:51002/
   http://localhost:51003/
   http://localhost:51004/transmission/web/
+  http://localhost:51005/gui/
+  http://localhost:51006/
 )
 
 if command -v google-chrome >/dev/null 2>&1; then
@@ -23,3 +25,6 @@ elif command -v xdg-open >/dev/null 2>&1; then
 else
   printf 'Interfacce web:\n%s\n' "${urls[@]}"
 fi
+
+docker logs qbittorrent
+

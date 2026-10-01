@@ -4,6 +4,8 @@ media/
 downloads/
 logs/
 transmission/config/
+utorrent/settings/
+qbittorrent/config/
 prowlarr/config/
 radarr/config/
 lidarr/config/

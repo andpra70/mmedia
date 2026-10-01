@@ -29,6 +29,44 @@ services:
       - "51413:51413/udp"
     restart: unless-stopped
 
+  utorrent:
+    image: ekho/utorrent:ubuntu-20.04
+    container_name: utorrent
+    environment:
+      UID: "1000"
+      GID: "1000"
+      dir_root: /data
+      dir_active: /data/incomplete
+      dir_completed: /data/complete
+      dir_download: /data/complete
+      bind_port: "51414"
+    volumes:
+      - ./utorrent/settings:/utorrent/settings
+      - ./downloads:/data
+    ports:
+      - "51414:51414"
+      - "51414:51414/udp"
+    restart: unless-stopped
+
+  qbittorrent:
+    image: lscr.io/linuxserver/qbittorrent:latest
+    container_name: qbittorrent
+    environment:
+      PUID: "1000"
+      PGID: "1000"
+      TZ: Europe/Rome
+      WEBUI_PORT: "51006"
+      TORRENTING_PORT: "51415"
+    volumes:
+      - ./qbittorrent/config:/config
+      - ./downloads:/downloads
+    ports:
+      - "51006:51006"
+      - "51415:51415"
+      - "51415:51415/udp"
+    stop_grace_period: 10s
+    restart: unless-stopped
+
   prowlarr:
     image: lscr.io/linuxserver/prowlarr:latest
     container_name: prowlarr
@@ -75,9 +113,11 @@ services:
       - "51002:8686"
       - "51003:9696"
       - "51004:9091"
+      - "51005:8081"
     depends_on:
       - jellyfin
       - transmission
+      - utorrent
       - prowlarr
       - radarr
       - lidarr

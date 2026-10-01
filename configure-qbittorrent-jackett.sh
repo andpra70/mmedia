@@ -37,7 +37,7 @@ umask 077
 printf '%s\n' \
   '{' \
   "    \"api_key\": \"$api_key\"," \
-  '    "thread_count": 20,' \
+  '    "thread_count": 1,' \
   '    "tracker_first": false,' \
   '    "url": "http://jackett:9117"' \
   '}' > "$plugin_config"

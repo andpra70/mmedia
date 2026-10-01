@@ -34,15 +34,11 @@ if [ -e media ] || [ -e downloads ]; then
   exit 1
 fi
 mkdir -p data/media/movies data/media/music data/media/tvshows
-mkdir -p data/downloads/complete/lidarr data/downloads/complete/radarr data/downloads/incomplete
-mkdir -p transmission/config qbittorrent/config/qBittorrent jackett/config prowlarr/config radarr/config lidarr/config
+mkdir -p data/downloads/complete data/downloads/incomplete
+mkdir -p qbittorrent/config/qBittorrent jackett/config
 chmod 775 data data/media data/media/movies data/media/music data/media/tvshows \
   data/downloads data/downloads/complete data/downloads/incomplete \
-  data/downloads/complete/lidarr data/downloads/complete/radarr
-
-if [ ! -f transmission/config/settings.json ]; then
-  cp transmission/settings.json transmission/config/settings.json
-fi
+  data/downloads/complete
 
 if [ ! -f qbittorrent/config/qBittorrent/qBittorrent.conf ]; then
   cp qbittorrent/qBittorrent.conf qbittorrent/config/qBittorrent/qBittorrent.conf

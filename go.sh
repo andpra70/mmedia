@@ -4,15 +4,12 @@ set -euo pipefail
 cd "$(dirname "$0")"
 ./install.sh
 docker compose up -d --remove-orphans
+python3 ./configure-qbittorrent-auth.py
 ./configure-qbittorrent-jackett.sh
 docker compose --profile tools run --rm --no-deps bootstrap
 
 urls=(
   http://localhost:51000/
-  http://localhost:51001/
-  http://localhost:51002/
-  http://localhost:51003/
-  http://localhost:51004/transmission/web/
   http://localhost:51006/
   http://localhost:51007/
 )

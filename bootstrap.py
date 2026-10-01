@@ -34,11 +34,13 @@ def check_qbittorrent_login(username, password):
         headers={'Referer': 'http://127.0.0.1:51006/'})
     try:
         with urllib.request.urlopen(request, timeout=10) as response:
+            status = response.status
             result = response.read().decode('utf-8', errors='replace').strip()
     except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError) as error:
         raise RuntimeError(
             f'qBittorrent: WebUI non raggiungibile sulla porta 51006 ({error})') from error
-    if result != 'Ok.':
+    # qBittorrent <= 5.2.3 returned ``200 Ok.``; 5.2.4 returns an empty 204.
+    if not (result == 'Ok.' or (status == 204 and not result)):
         raise RuntimeError(
             'qBittorrent: accesso rifiutato. Imposta una password permanente nella '
             'WebUI e riporta esattamente le stesse credenziali nel file .env')
@@ -175,10 +177,23 @@ def migrate_library_paths(name, old_root, new_root):
         print(f'{name}: rimossa root obsoleta {old_root}')
 
 
+def migrate_collection_paths(old_root, new_root):
+    changed = 0
+    for collection in call('radarr', 'collection'):
+        if collection.get('rootFolderPath') == old_root:
+            collection['rootFolderPath'] = new_root
+            call('radarr', f"collection/{collection['id']}", 'PUT', collection)
+            changed += 1
+    if changed:
+        print(f'radarr: migrate {changed} collezioni da {old_root} a {new_root}')
+
+
 def setup_arr(name, path, category):
     root(name, path)
     old_path = '/media/movies' if name == 'radarr' else '/media/music'
     migrate_library_paths(name, old_path, path)
+    if name == 'radarr':
+        migrate_collection_paths(old_path, path)
     setup_qbittorrent_client(name, category, name)
     media = call(name, 'config/mediamanagement')
     if 'copyUsingHardlinks' in media:
@@ -328,14 +343,8 @@ def setup_notifications(token):
                {'host': 'jellyfin', 'port': 8096, 'apiKey': token, 'updateLibrary': True}, extras)
 
 def main():
-    for name in SERVICES:
-        ready(name)
-    setup_arr('radarr', '/data/media/movies', 'movieCategory')
-    setup_arr('lidarr', '/data/media/music', 'musicCategory')
-    setup_prowlarr()
-    token = setup_jellyfin()
-    setup_notifications(token)
-    print('Bootstrap completato. Controlla gli indexer in Prowlarr.')
+    setup_jellyfin()
+    print('Bootstrap Jellyfin completato.')
 
 
 if __name__ == '__main__':

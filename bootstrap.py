@@ -27,8 +27,26 @@ def qbittorrent_credentials():
     return username, password
 
 
+def check_qbittorrent_login(username, password):
+    data = urllib.parse.urlencode({'username': username, 'password': password}).encode()
+    request = urllib.request.Request(
+        'http://127.0.0.1:51006/api/v2/auth/login', data=data, method='POST',
+        headers={'Referer': 'http://127.0.0.1:51006/'})
+    try:
+        with urllib.request.urlopen(request, timeout=10) as response:
+            result = response.read().decode('utf-8', errors='replace').strip()
+    except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError) as error:
+        raise RuntimeError(
+            f'qBittorrent: WebUI non raggiungibile sulla porta 51006 ({error})') from error
+    if result != 'Ok.':
+        raise RuntimeError(
+            'qBittorrent: accesso rifiutato. Imposta una password permanente nella '
+            'WebUI e riporta esattamente le stesse credenziali nel file .env')
+
+
 def setup_qbittorrent_client(name, category_field, category):
     username, password = qbittorrent_credentials()
+    check_qbittorrent_login(username, password)
     ensure(name, 'downloadclient', 'QBittorrent', 'qBittorrent',
            {'host': 'qbittorrent', 'port': 51006, 'useSsl': False,
             'urlBase': '', 'username': username, 'password': password,
@@ -109,7 +127,14 @@ def ensure(name, route, implementation, display, values, extras=None):
         field(record, field_name, value)
     if extras:
         record.update(extras)
-    call(name, route + (f"/{record['id']}" if existing else ''), 'PUT' if existing else 'POST', record)
+    target = route + (f"/{record['id']}" if existing else '')
+    method = 'PUT' if existing else 'POST'
+    try:
+        call(name, target, method, record)
+    except urllib.error.HTTPError as error:
+        detail = error.read().decode('utf-8', errors='replace')[:2000]
+        raise RuntimeError(
+            f'{name}: configurazione {display} rifiutata (HTTP {error.code}): {detail}') from error
     print(f'{name}: {display} configurato')
 
 

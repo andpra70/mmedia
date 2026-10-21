@@ -21,7 +21,7 @@ Per migrare un'installazione precedente sul server raggiungibile con l'alias SSH
 
 Lo script remoto esegue `git pull --ff-only`, ferma lo stack, sposta `media/` e `downloads/` sotto `data/`, aggiorna le configurazioni persistenti e riavvia i servizi. Non fonde directory ambigue e non cancella la vecchia directory `utorrent/`.
 
-`install.sh` crea le directory e prepara le impostazioni iniziali dei client torrent. `go.sh` avvia i container e apre le sette interfacce nel browser. I contenuti sono sotto `data/`, mentre i dati Jellyfin sono sotto `jellyfin/`. Per arrestare: `docker compose down`. Per controllare: `docker compose ps` e `docker compose logs -f NOME_SERVIZIO`.
+`install.sh` crea le directory e prepara le impostazioni iniziali dei client torrent. `go.sh` avvia i container e apre le interfacce nel browser. I contenuti sono sotto `data/`, mentre i dati Jellyfin sono sotto `jellyfin/`. Per arrestare: `docker compose down`. Per controllare: `docker compose ps` e `docker compose logs -f NOME_SERVIZIO`.
 
 Se aggiorni una vecchia installazione, `go.sh` rimuove il container WireGuard ormai orfano. L'eventuale directory locale `wireguard/` non viene cancellata automaticamente perché contiene chiavi private: dopo avere verificato che non ti serva più, eliminala manualmente con attenzione.
 
@@ -36,6 +36,13 @@ Se aggiorni una vecchia installazione, `go.sh` rimuove il container WireGuard or
 | Transmission | [http://localhost:51004/transmission/web/](http://localhost:51004/transmission/web/) | Controlla i download |
 | qBittorrent | [http://localhost:51006/](http://localhost:51006/) | Client torrent alternativo |
 | Jackett | [http://localhost:51007/](http://localhost:51007/) | Indexer per la ricerca integrata di qBittorrent |
+| Kavita | [http://localhost:51008/](http://localhost:51008/) | Catalogo e lettore web per ebook |
+
+### Prima configurazione di Kavita
+
+La libreria host `data/media/ebooks` è montata in sola lettura nel container come `/books`; la configurazione persistente è in `kavita/config`. Al primo accesso crea l'account amministratore, quindi aggiungi una libreria di tipo **Book** indicando `/books` come cartella.
+
+Kavita scandisce direttamente file e sottocartelle, quindi non richiede il database `metadata.db` di Calibre. Per ottenere titoli, autori, serie e copertine corretti, conserva buoni metadati interni nei file EPUB e organizza i libri in sottocartelle coerenti.
 
 Le porte web sono pubblicate su tutte le interfacce della host (`0.0.0.0`). Le porte BitTorrent `51413` (Transmission) e `51415` (qBittorrent), TCP/UDP, restano pubblicate per il traffico peer e non sono UI. Limita l'accesso con il firewall della host e con le regole del router.
 
@@ -80,6 +87,7 @@ Lidarr gestisce soprattutto artisti e album; per un singolo brano è più pratic
 | `data/downloads/complete` | `/data/downloads/complete` | Area transitoria dei torrent terminati |
 | `data/media/movies` | `/data/media/movies` in Radarr, `/media/movies` in Jellyfin | Libreria film |
 | `data/media/music` | `/data/media/music` in Lidarr, `/media/music` in Jellyfin | Libreria musica |
+| `data/media/ebooks` | `/books` in Kavita, `/media/ebooks` in Jellyfin | Libreria ebook, in sola lettura per Kavita |
 | `jellyfin/config`, `jellyfin/cache`, `jellyfin/render-cache` | `/config`, `/cache`, `/config/data/render-cache` | Dati Jellyfin persistenti |
 | `*/config` | `/config` | Stato dei nuovi servizi |
 | `qbittorrent/config` | `/config` | Configurazione persistente di qBittorrent |
@@ -99,6 +107,7 @@ I servizi espongono direttamente le rispettive porte, senza reverse proxy:
 host:51000  → jellyfin:8096
 host:51006  → qbittorrent:51006
 host:51007  → jackett:9117
+host:51008  → kavita:5000
 ```
 
 Per app e TV Jellyfin usa `http://IP_SERVER:51000/`.
@@ -108,6 +117,7 @@ Per app e TV Jellyfin usa `http://IP_SERVER:51000/`.
 - [Transmission Docker](https://docs.linuxserver.io/images/docker-transmission/)
 - [qBittorrent Docker](https://docs.linuxserver.io/images/docker-qbittorrent/)
 - [Jackett Docker](https://docs.linuxserver.io/images/docker-jackett/)
+- [Kavita](https://wiki.kavitareader.com/)
 - [Prowlarr Docker](https://docs.linuxserver.io/images/docker-prowlarr/)
 - [Radarr Docker](https://docs.linuxserver.io/images/docker-radarr/)
 - [Lidarr Docker](https://docs.linuxserver.io/images/docker-lidarr/)

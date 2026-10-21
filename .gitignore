@@ -8,6 +8,7 @@ transmission/config/
 utorrent/
 qbittorrent/config/
 jackett/config/
+kavita/config/
 prowlarr/config/
 radarr/config/
 lidarr/config/

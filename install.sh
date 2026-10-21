@@ -33,10 +33,11 @@ if [ -e media ] || [ -e downloads ]; then
   echo "Layout precedente rilevato: esegui prima ./migrate-data-layout.sh" >&2
   exit 1
 fi
-mkdir -p data/media/movies data/media/music data/media/tvshows
+mkdir -p data/media/movies data/media/music data/media/tvshows data/media/ebooks
 mkdir -p data/downloads/complete data/downloads/incomplete
-mkdir -p qbittorrent/config/qBittorrent jackett/config
+mkdir -p qbittorrent/config/qBittorrent jackett/config kavita/config
 chmod 775 data data/media data/media/movies data/media/music data/media/tvshows \
+  data/media/ebooks kavita kavita/config \
   data/downloads data/downloads/complete data/downloads/incomplete \
   data/downloads/complete
 

@@ -11,6 +11,7 @@ urls=(
   http://localhost:51000/
   http://localhost:51006/
   http://localhost:51007/
+  http://localhost:51008/
 )
 
 if command -v google-chrome >/dev/null 2>&1; then
